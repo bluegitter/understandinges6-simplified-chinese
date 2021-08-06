@@ -1,9 +1,12 @@
 # Proxies and the Reflection API
 
-
 ECMAScript 5 and ECMAScript 6 were both developed with demystifying JavaScript functionality in mind. For example, JavaScript environments contained nonenumerable and nonwritable object properties before ECMAScript 5, but developers couldn’t define their own nonenumerable or nonwritable properties. ECMAScript 5 included the Object.defineProperty() method to allow developers to do what JavaScript engines could do already.
 
+ECMAScript 5 和 ECMAScript 6 的开发都考虑到了消除 JavaScript 功能的神秘面纱。 例如，在 ECMAScript 5 之前，JavaScript 环境包含不可枚举和不可写的对象属性，但开发人员无法定义自己的不可枚举或不可写的属性。 ECMAScript 5 包含 Object.defineProperty() 方法，允许开发人员做 JavaScript 引擎已经可以做的事情。
+
 ECMAScript 6 gives developers further access to JavaScript engine capabilities by adding built-in objects. To allow developers to create built-in objects, the language exposes the inner workings of objects through proxies, which are wrappers that can intercept and alter low-level operations of the JavaScript engine. This chapter starts by describing the problem that proxies are meant to address in detail, and then discusses how you can create and use proxies effectively.
+
+ECMAScript 6通过添加内置对象让开发人员进一步访问JavaScript引擎功能。为了允许开发人员创建内置对象，该语言通过代理公开对象的内部工作，代理是可以拦截和修改JavaScript引擎低级操作的包装器。本章首先详细描述代理要解决的问题，然后讨论如何有效地创建和使用代理。
 
 <br />
 
@@ -27,10 +30,11 @@ ECMAScript 6 gives developers further access to JavaScript engine capabilities b
 
 <br />
 
-### <a id="The-Array-Problem"> The Array Problem </a>
-
+### <a id="The-Array-Problem"> 数组问题(The Array Problem) </a>
 
 The JavaScript array object behaves in ways that developers couldn’t mimic in their own objects before ECMASCript 6. An array’s length property is affected when you assign values to specific array items, and you can modify array items by modifying the length property. For example:
+
+在ECMASCript 6之前，开发人员无法在自己的对象中模拟JavaScript数组对象的行为。当您为特定的数组项赋值时，数组的长度属性会受到影响，您可以通过修改长度属性来修改数组项。例如:
 
 ```js
 let colors = ["red", "green", "blue"];
@@ -52,22 +56,31 @@ console.log(colors[1]);             // "green"
 
 The colors array starts with three items. Assigning "black" to colors[3] automatically increments the length property to 4. Setting the length property to 2 removes the last two items in the array, leaving only the first two items. Nothing in ECMAScript 5 allows developers to achieve this behavior, but proxies change that.
 
+颜色数组以三个项开始。 将“black”分配给 colors[3] 会自动将 length 属性增加到 4。将 length 属性设置为 2 将删除数组中的最后两项，仅保留前两项。 ECMAScript 5 中没有任何内容允许开发人员实现这种行为，但代理改变了这一点。
+
 <br />
 
 > This nonstandard behavior is why arrays are considered exotic objects in ECMAScript 6.
+>
+> 这种非标准行为就是为什么数组在ECMAScript 6中被认为是外来对象。
 
 <br />
 
-### <a id="What-are-Proxies-and-Reflection"> What are Proxies and Reflection? </a>
-
+### <a id="What-are-Proxies-and-Reflection">代理和反射( What are Proxies and Reflection?) </a>
 
 You can create a proxy to use in place of another object (called the target) by calling new Proxy(). The proxy virtualizes the target so that the proxy and the target appear to be the same object to functionality using the proxy.
 
+您可以通过调用 new Proxy() 创建一个代理来代替另一个对象（称为目标）。 代理将目标虚拟化，以便代理和目标对于使用代理的功能而言似乎是相同的对象。
+
 Proxies allow you to intercept low-level object operations on the target that are otherwise internal to the JavaScript engine. These low-level operations are intercepted using a trap, which is a function that responds to a specific operation.
+
+代理允许您在目标上截获JavaScript引擎内部的低级对象操作。这些低级操作是使用陷阱拦截的，陷阱是一个响应特定操作的函数。
 
 The reflection API, represented by the Reflect object, is a collection of methods that provide the default behavior for the same low-level operations that proxies can override. There is a Reflect method for every proxy trap. Those methods have the same name and are passed the same arguments as their respective proxy traps. Table 11-1 summarizes this behavior.
 
-Table 11-1: Proxy traps in JavaScript
+由Reflect对象表示的反射API是一组方法，它们为代理可以覆盖的相同低级操作提供默认行为。每个代理陷阱都有一个Reflect方法。这些方法具有相同的名称，并传递与它们各自的代理陷阱相同的参数。表11-1总结了这种行为。
+
+Table 11-1: JavaScript 中的代理陷阱(Proxy traps in JavaScript)
 
 |  Proxy Trap                |  Overrides the Behavior Of          |  Default Behavior                    |
 |  :----------------------:  |  :-------------------------------:  |  :--------------------------------:  |
@@ -87,16 +100,21 @@ Table 11-1: Proxy traps in JavaScript
 
 Each trap overrides some built-in behavior of JavaScript objects, allowing you to intercept and modify the behavior. If you still need to use the built-in behavior, then you can use the corresponding reflection API method. The relationship between proxies and the reflection API becomes clear when you start creating proxies, so it’s best to dive in and look at some examples.
 
+每个陷阱都会覆盖 JavaScript 对象的一些内置行为，允许您拦截和修改行为。 如果你仍然需要使用内置行为，那么你可以使用相应的反射 API 方法。 当您开始创建代理时，代理和反射 API 之间的关系就会变得清晰，因此最好深入研究并查看一些示例。
+
 <br />
 
 > The original ECMAScript 6 specification had an additional trap called enumerate that was designed to alter how for-in and Object.keys() enumerated properties on an object. However, the enumerate trap was removed in ECMAScript 7 (also called ECMAScript 2016) as difficulties were discovered during implementation. The enumerate trap no longer exists in any JavaScript environment and is therefore not covered in this chapter.
+>
+> 最初的ECMAScript 6规范有一个名为enumerate的附加陷阱，旨在改变for-in和object. keys()枚举对象属性的方式。然而，由于在实现过程中发现了困难，在ECMAScript 7(也称为ECMAScript 2016)中删除了枚举陷阱。枚举陷阱在任何JavaScript环境中都不再存在，因此本章不再讨论。
 
 <br />
 
 ### <a id="Creating-a-Simple-Proxy"> Creating a Simple Proxy </a>
 
-
 When you use the Proxy constructor to make a proxy, you’ll pass it two arguments: the target and a handler. A handler is an object that defines one or more traps. The proxy uses the default behavior for all operations except when traps are defined for that operation. To create a simple forwarding proxy, you can use a handler without any traps:
+
+当您使用Proxy构造函数创建代理时，您将向它传递两个参数:目标和处理程序。处理程序是定义一个或多个陷阱的对象。代理对所有操作使用默认行为，除非为该操作定义了陷阱。要创建一个简单的转发代理，你可以使用一个没有任何陷阱的处理程序:
 
 ```js
 let target = {};
@@ -114,21 +132,34 @@ console.log(target.name);       // "target"
 
 In this example, proxy forwards all operations directly to target. When "proxy" is assigned to the proxy.name property, name is created on target. The proxy itself is not storing this property; it’s simply forwarding the operation to target. Similarly, the values of proxy.name and target.name are the same because they are both references to target.name. That also means setting target.name to a new value causes proxy.name to reflect the same change. Of course, proxies without traps aren’t very interesting, so what happens when you define a trap?
 
+在本例中，代理将所有操作直接转发给目标。当"proxy"被分配给proxy.name属性时，在target上创建name。代理本身并不存储该属性;它只是把行动转发给目标。类似地，proxy.name和target.name的值是相同的，因为它们都是对target.name的引用。这也意味着将target.name设置为新值会导致proxy.name反映相同的更改。当然，没有陷阱的代理不是很有趣，那么定义陷阱时会发生什么呢?
+
 <br />
 
-### <a id="Validating-Properties-Using-the-set-Trap"> Validating Properties Using the set Trap </a>
-
+### <a id="Validating-Properties-Using-the-set-Trap"> 使用设置的陷阱验证属性(Validating Properties Using the set Trap) </a>
 
 Suppose you want to create an object whose property values must be numbers. That means every new property added to the object must be validated, and an error must be thrown if the value isn’t a number. To accomplish this, you could define a set trap that overrides the default behavior of setting a value. The set trap receives four arguments:
+
+假设您想要创建一个属性值必须为数字的对象。这意味着必须验证添加到对象中的每个新属性，如果值不是数字，则必须抛出错误。为此，您可以定义一个设置陷阱，该陷阱覆盖设置值的默认行为。set trap接收四个参数:
 
 1. trapTarget - the object that will receive the property (the proxy’s target)
 2. key - the property key (string or symbol) to write to
 3. value - the value being written to the property
 4. receiver - the object on which the operation took place (usually the proxy)
 
+
+1. trapTarget - 将接收属性的对象（代理的目标）
+2. key - 要写入的属性键（字符串或符号）
+3. value - 写入属性的值
+4. receiver - 发生操作的对象（通常是代理）
+
 Reflect.set() is the set trap’s corresponding reflection method, and it’s the default behavior for this operation. The Reflect.set() method accepts the same four arguments as the set proxy trap, making the method easy to use inside of the trap. The trap should return true if the property was set or false if not. (The Reflect.set() method returns the correct value based on whether the operation succeeded.)
 
+Reflect.set() 是set trap对应的反射方法，是这个操作的默认行为。 Reflect.set() 方法接受与 set 代理陷阱相同的四个参数，使该方法易于在陷阱内部使用。 如果该属性已设置，则陷阱应返回 true，否则应返回 false。 （Reflect.set() 方法根据操作是否成功返回正确的值。）
+
 To validate the values of properties, you’d use the set trap and inspect the value that is passed in. Here’s an example:
+
+要验证属性的值，可以使用set陷阱并检查传入的值。这里有一个例子:
 
 ```js
 let target = {
@@ -166,11 +197,19 @@ proxy.anotherName = "proxy";
 
 This code defines a proxy trap that validates the value of any new property added to target. When proxy.count = 1 is executed, the set trap is called. The trapTarget value is equal to target, key is "count", value is 1, and receiver (not used in this example) is proxy. There is no existing property named count in target, so the proxy validates value by passing it to isNaN(). If the result is NaN, then the property value is not numeric and an error is thrown. Since this code sets count to 1, the proxy calls Reflect.set() with the same four arguments that were passed to the trap to add the new property.
 
+此代码定义了一个代理陷阱，用于验证添加到目标的任何新属性的值。 当执行proxy.count = 1 时，会调用set 陷阱。 trapTarget 值等于目标，键是“计数”，值是 1，接收者（本例中未使用）是代理。 目标中没有名为 count 的现有属性，因此代理通过将其传递给 isNaN() 来验证值。 如果结果为 NaN，则属性值不是数字并抛出错误。 由于此代码将 count 设置为 1，因此代理使用传递给陷阱的相同四个参数调用 Reflect.set() 以添加新属性。
+
 When proxy.name is assigned a string, the operation completes successfully. Since target already has a name property, that property is omitted from the validation check by calling the trapTarget.hasOwnProperty() method. This ensures that previously-existing non-numeric property values are still supported.
+
+当 proxy.name 被分配一个字符串时，操作成功完成。 由于 target 已经有一个 name 属性，所以通过调用 trapTarget.hasOwnProperty() 方法从验证检查中忽略该属性。 这可确保仍支持先前存在的非数字属性值。
 
 When proxy.anotherName is assigned a string, however, an error is thrown. The anotherName property doesn’t exist on the target, so its value needs to be validated. During validation, the error is thrown because "proxy" isn’t a numeric value.
 
+但是，当为 proxy.anotherName 分配一个字符串时，会引发错误。 目标上不存在 anotherName 属性，因此需要验证其值。 在验证期间，会抛出错误，因为“代理”不是数值。
+
 Where the set proxy trap lets you intercept when properties are being written to, the get proxy trap lets you intercept when properties are being read.
+
+设置代理陷阱可让您在写入属性时进行拦截，而获取代理陷阱可让您在读取属性时进行拦截。
 
 <br />
 
